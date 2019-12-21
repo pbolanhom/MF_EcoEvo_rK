@@ -1,0 +1,928 @@
+#Packages
+library(deSolve)
+#Parameters r0, rz, l0 and lz in the mains text are represented as a,b,k0 and k1 in this code.
+#A new version of this code is being prepared.
+#Model
+system1 = function(t,y,parms){
+  with(as.list(c(y,parms)),
+       {
+         dN=N*(a+b*z-N*(k0+k1*z)-P*z/(1+h*z*N))            #Prey Population
+         dP=P*(e*z*N/(1+h*z*N)-d)                          #Predator Population
+         dz=V*exp(-s/(z-s))*(b-N*k1-P/(1+h*z*N))           #Trait Dynamics
+         return(list(c(N=dN,P=dP,z=dz)))
+       })
+}
+
+#########################################Main text figures
+
+############################################################################################
+#Figure 1
+#Bifurcating for the value of prey innate growth rate
+aa = seq(from = 0, to=2, by=0.01)
+aNminmax = matrix(NA, ncol=2, nrow=length(aa))#prey minimum and maximum
+aPminmax = matrix(NA, ncol=2, nrow=length(aa))#predator minimux ans maximum
+azminmax = matrix(NA, ncol=2, nrow=length(aa))#trait minum and maximum
+for(i in 1:length(aa)){
+  parmsi = c(a=aa[i],b=0.8,k0=0.5,k1=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001)
+  n = c(N=0.5,P=0.5,z=1)
+  outi = ode(y=n, times = seq(from = 1, to = 20000, by=0.1), func = system1, parms = parmsi)
+  aNminmax[i,] = range(outi[(nrow(outi)-5000):nrow(outi),2])
+  aPminmax[i,] = range(outi[(nrow(outi)-5000):nrow(outi),3])
+  azminmax[i,] = range(outi[(nrow(outi)-5000):nrow(outi),4])
+}
+
+parameters=c(a=0.633,b=0.8,k0=0.5,k1=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001)
+prm=as.list(parameters) #creating a list of parameters for later
+a1=prm$b*prm$k0/prm$k1
+a2=0.633
+
+#Removing the runaway dynamics 
+#From Prey
+r0.Nminmax=data.frame(r0Nminmax,r0r0)
+r0.Nminmax
+which(r0.Nminmax$X1 < "0")
+r0.Nminmax$X1[which(r0.Nminmax$X1 < "0")]=NA
+r0.Nminmax[!!rowSums(is.na(r0.Nminmax)),] = NA
+r0.Nminmax
+
+#fROM pREDATOR
+r0.Pminmax=data.frame(r0Pminmax,r0r0)
+r0.Pminmax$X1[which(r0.Pminmax$X1 < "0")]=NA
+r0.Pminmax[!!rowSums(is.na(r0.Pminmax)),] = NA
+
+#FROM TRAIT
+r0.zminmax=data.frame(r0r0zminmax,r0r0)
+r0.zminmax$aa[which(r0.zminmax$aa <= "0.29")]=NA
+r0.zminmax[!!rowSums(is.na(r0.zminmax)),] = NA
+
+#Bifurcation for r0
+#Prey
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+plot(x=aa, y=r0.Nminmax[,1],  type="l", lwd=3,lty=2,ylim=range(0:5),
+     xlab=expression(italic(r[0])), ylab=expression("Prey density"~(italic(N))),frame=T,col="black")
+points(x=aa, y=r0.Nminmax[,2],type="l", lwd=3)
+abline(v=a2, col="red",lwd=2,lty=1) #r=K
+abline(v=a1, col="red",lwd=2,lty=2) #r=-K
+abline(v=1.38, col="red",lwd=2,lty=2) #cycles
+abline(v=0.294, col="red",lwd=2,lty=2) #runaway
+text(0.15,5,paste("AI"),cex=2)
+text(0.84,5,paste("AII"),cex=2)
+text(1.48,5,paste("AIII"),cex=2)
+text(1.8,5,paste("AIV"),cex=2)
+#Predator
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+plot(x=aa, y=r0.Pminmax[,1],  type="l", lwd=3,lty=2,ylim=range(0:5),
+     xlab=expression(italic(r[0])), ylab=expression("Predator density"~(italic(P))),frame=T,col="black")
+points(x=aa, y=r0.Pminmax[,2],type="l", lwd=3)
+abline(v=a2, col="red",lwd=2,lty=1) #r=K
+abline(v=a1, col="red",lwd=2,lty=2) #r=-K
+abline(v=1.38, col="red",lwd=2,lty=2) #cycles
+abline(v=0.294, col="red",lwd=2,lty=2) #runaway
+text(0.15,5,paste("AI"),cex=2)
+text(0.84,5,paste("AII"),cex=2)
+text(1.48,5,paste("AIII"),cex=2)
+text(1.8,5,paste("AIV"),cex=2)
+
+#tRAIT
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+plot(x=aa, y=r0.zminmax[,1],  type="l", lwd=3,lty=2,ylim=range(0:5),
+     xlab=expression(italic(r[0])), ylab=expression("Trait value"~(italic(z))),frame=T,col="black")
+points(x=aa, y=r0.zminmax[,2],type="l", lwd=3)
+abline(v=a2, col="red",lwd=2,lty=1) #r=K
+abline(v=a1, col="red",lwd=2,lty=2) #r=-K
+abline(v=1.38, col="red",lwd=2,lty=2) #cycles
+abline(v=0.294, col="red",lwd=2,lty=2) #runaway
+text(0.15,5,paste("AI"),cex=2)
+text(0.84,5,paste("AII"),cex=2)
+text(1.48,5,paste("AIII"),cex=2)
+text(1.8,5,paste("AIV"),cex=2)
+
+#r/K continuum
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+parameters=c(r0=0.633,rz=0.8,l0=0.5,lz=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001)
+prm=as.list(parameters) 
+r0r0=seq(0,2,0.01)
+drNl.r_r0=prm$rz*r0r0*((r0r0*(prm$e-prm$d*prm$h)+prm$lz*prm$d)/((r0r0^2)*(prm$e-prm$d*prm$h)+prm$rz*prm$d*prm$l0))
+rsel.eq_r0=prm$rz-drNl.r_r0
+Ksel.eq_r0=drNl.r_r0-prm$lz*r0r0/prm$l0
+#Plotting
+matplot(x=r0r0,y=rsel.eq_r0,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab=expression(italic(r[0])),ylab="r/K Selective gradients",frame=T,ylim = range(1,-1))
+lines(x=r0r0,y=Ksel.eq_r0,lty=2,lwd=2)
+abline(v=a2, col="red",lwd=2,lty=1) #r=K
+abline(v=a1, col="red",lwd=2,lty=2) #r=-K
+abline(v=1.38, col="red",lwd=2,lty=2) #cycles
+abline(v=0.294, col="red",lwd=2,lty=2) #runaway
+text(0.15,1,paste("AI"),cex=2)
+text(0.84,1,paste("AII"),cex=2)
+text(1.48,1,paste("AIII"),cex=2)
+text(1.8,1,paste("AIV"),cex=2)
+legend("topright", legend = c("r","K"), 
+       lty = c(1), lwd=c(2),cex=0.7,col=c("black","darkgrey"))
+
+###############################################################################################
+#Figure 2
+#Bifurcating for the value of e
+ee = seq(from = 0, to=6, by=0.01)
+eNminmax = matrix(NA, ncol=2, nrow=length(ee))#prey minimum and maximum
+ePminmax = matrix(NA, ncol=2, nrow=length(ee))#predator minimux ans maximum
+ezminmax = matrix(NA, ncol=2, nrow=length(ee))#trait minum and maximum
+for(i in 1:length(ee)){
+  parmsi = c(a=0.633,b=0.8,k0=0.5,k1=0.25,h=1,e=ee[i],d=0.5,V=0.05,s=0.0001)
+  n = c(N=0.5,P=0.5,z=1)
+  outi = ode(y=n, times = seq(from = 1, to = 20000, by=0.1), func = system1, parms = parmsi)
+  outi.log = outi#log(outi+1)
+  eNminmax[i,] = range(outi.log[(nrow(outi.log)-5000):nrow(outi.log),2])
+  ePminmax[i,] = range(outi.log[(nrow(outi.log)-5000):nrow(outi.log),3])
+  ezminmax[i,] = range(outi.log[(nrow(outi.log)-5000):nrow(outi.log),4])
+}
+a=0.633
+b=0.8
+k0=0.5
+k1=0.25
+h=1
+d=0.5
+alphae=((b*k0/a)-k1)*(b*k0/(a*(b*k0-a*k1)))
+alphae
+e2=d*(alphae+h)
+e1=d*h
+e1
+e2
+
+
+#Removing the runaway dynamics 
+#From Prey
+e.Nminmax=data.frame(eNminmax,ee)
+e.Nminmax
+which(e.Nminmax$X1 < "0")
+e.Nminmax$X1[which(e.Nminmax$X1 < "0")]=NA
+e.Nminmax[!!rowSums(is.na(e.Nminmax)),] = NA
+e.Nminmax$ee[502]
+
+#fROM pREDATOR
+e.Pminmax=data.frame(ePminmax,ee)
+e.Pminmax$X1[which(e.Pminmax$X1 < "0")]=NA
+e.Pminmax[!!rowSums(is.na(e.Pminmax)),] = NA
+
+#FROM TRAIT
+e.zminmax=data.frame(ezminmax,ee)
+e.zminmax$ee[which(e.zminmax$ee>="0.51"&e.zminmax$ee<="0.57")]=NA
+e.zminmax[!!rowSums(is.na(e.zminmax)),] = NA
+
+#Prey
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+plot(x=ee, y=e.Nminmax[,1],  type="l", lwd=3,lty=2,ylim=range(0:5),
+     xlab=expression(italic(e)), ylab=expression("Prey Density"~(italic(N))),frame=T,col="black")
+points(x=ee, y=e.Nminmax[,2],type="l", lwd=3)
+abline(v=e2, col="red",lwd=2,lty=1) #r=K
+#abline(v=e1, col="red",lwd=2,lty=2) #r=-K
+abline(v=5.01, col="red",lwd=2,lty=2) #CYCLES
+abline(v=0.58, col="red",lwd=2,lty=2) #stable dynamics
+text(0.35,5,paste("AI"),cex=2)
+text(3,5,paste("AII"),cex=2)
+text(5.5,5,paste("AIII"),cex=2)
+
+
+#Predator
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+plot(x=ee, y=e.Pminmax[,1],  type="l", lwd=3,lty=2,ylim=range(0:5),
+     xlab=expression(italic(e)), ylab=expression("Predator Density"~(italic(P))),frame=T,col="black")
+points(x=ee, y=e.Pminmax[,2],type="l", lwd=3)
+abline(v=e2, col="red",lwd=2,lty=1) #r=K
+#abline(v=e1, col="red",lwd=2,lty=2) #r=-K
+abline(v=5.01, col="red",lwd=2,lty=2) #CYCLES
+abline(v=0.58, col="red",lwd=2,lty=2) #stable dynamics
+text(0.35,5,paste("AI"),cex=2)
+text(3,5,paste("AII"),cex=2)
+text(5.5,5,paste("AIII"),cex=2)
+dev.off()
+#tRAIT
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+plot(x=ee, y=e.zminmax[,1],  type="l", lwd=3,lty=2,ylim=range(0:5),
+     xlab=expression(italic(e)), ylab=expression("Trait Value"~(italic(z))),frame=T,col="black")
+points(x=ee, y=e.zminmax[,2],type="l", lwd=3)
+abline(v=e2, col="red",lwd=2,lty=1) #r=K
+#abline(v=e1, col="red",lwd=2,lty=2) #r=-K
+abline(v=5.01, col="red",lwd=2,lty=2) #CYCLES
+abline(v=0.58, col="red",lwd=2,lty=2) #stable dynamics
+text(0.35,5,paste("AI"),cex=2)
+text(3,5,paste("AII"),cex=2)
+text(5.5,5,paste("AIII"),cex=2)
+
+#rK continuum
+parameters=c(r0=0.633,rz=0.8,l0=0.5,lz=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001) #r=K
+prm=as.list(parameters) #creating a list of parameters for later
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+ee=seq(0,6,0.01)
+drNl.r=prm$rz*prm$r0*((prm$r0*(ee-prm$d*prm$h)+prm$lz*prm$d)/((prm$r0^2)*(ee-prm$d*prm$h)+prm$rz*prm$d*prm$l0))
+rsel.eq=prm$rz-drNl.r
+Ksel.eq=drNl.r-prm$lz*prm$r0/prm$l0
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=ee,y=rsel.eq,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab=expression(italic(e)),ylab="r/K Selective gradients",frame=T,
+        ylim = range(-1:1))
+lines(x=ee,y=Ksel.eq,lty=2,lwd=2)
+abline(v=e2, col="red",lwd=2,lty=1) #r=K
+#abline(v=e1, col="red",lwd=2,lty=2) #r=-K
+abline(v=5.01, col="red",lwd=2,lty=2) #CYCLES
+abline(v=0.58, col="red",lwd=2,lty=2) #stable dynamics
+text(0.35,1,paste("AI"),cex=2)
+text(3,1,paste("AII"),cex=2)
+text(5.5,1,paste("AIII"),cex=2)
+
+###############################################################################################
+#Figure 3
+#Bifurcating for the value of h
+hh = seq(from = 0, to=2.5, by=0.01)
+hNminmax = matrix(NA, ncol=2, nrow=length(hh))#prey minimum and maximum
+hPminmax = matrix(NA, ncol=2, nrow=length(hh))#predator minimux ans maximum
+hzminmax = matrix(NA, ncol=2, nrow=length(hh))#trait minum and maximum
+for(i in 1:length(hh)){
+  parmsi = c(a=0.633,b=0.8,k0=0.5,k1=0.25,h=hh[i],e=1,d=0.5,V=0.05,s=0.0001)
+  n = c(N=0.5,P=0.5,z=1)
+  outi = ode(y=n, times = seq(from = 1, to = 20000, by=0.1), func = system1, parms = parmsi)
+  outi.log = outi#log(outi+1)
+  hNminmax[i,] = range(outi.log[(nrow(outi.log)-5000):nrow(outi.log),2])
+  hPminmax[i,] = range(outi.log[(nrow(outi.log)-5000):nrow(outi.log),3])
+  hzminmax[i,] = range(outi.log[(nrow(outi.log)-5000):nrow(outi.log),4])
+}
+#Finding the h values that allows for stabilities
+a=0.633
+b=0.8
+k0=0.5
+k1=0.25
+e=1
+d=0.5
+alphah=(b*k0/a-k1)*(b*k0/(a*(b*k0-a*k1)))
+h2=e/d-alphah
+h1=e/d
+h2
+
+#removing the runaway
+h.Nminmax=data.frame(hNminmax,hh)
+h.Nminmax
+which(h.Nminmax$X1 < "0")
+h.Nminmax$X1[which(h.Nminmax$X1 < "0")]=NA
+h.Nminmax[!!rowSums(is.na(h.Nminmax)),] = NA
+h.Nminmax
+#fROM pREDATOR
+h.Pminmax=data.frame(hPminmax,hh)
+h.Pminmax$X1[which(h.Pminmax$X1 < "0")]=NA
+h.Pminmax[!!rowSums(is.na(h.Pminmax)),] = NA
+
+#FROM TRAIT
+h.zminmax=data.frame(hzminmax,hh)
+h.zminmax$hh[which(h.zminmax$hh>"1.75")]=NA
+h.zminmax[!!rowSums(is.na(h.zminmax)),] = NA
+
+#Bifurcation for h
+#Prey
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+plot(x=hh, y=h.Nminmax[,1],  type="l", lwd=3,lty=2,ylim=range(0:5),
+     xlab=expression(italic(h)), ylab=expression("Prey Density"~(italic(N))),frame=T,col="black")
+points(x=hh, y=h.Nminmax[,2],type="l", lwd=3)
+abline(v=h2, col="red",lwd=2,lty=1) #r=K
+#abline(v=h1, col="red",lwd=2,lty=2) #r=-K
+abline(v=1.75, col="red",lwd=2,lty=2)
+text(2.25,5,paste("AI"),cex=2)
+text(0.75,5,paste("AII"),cex=2)
+#text(2.3,5,paste("AIV"),cex=2)
+#Predator
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+plot(x=hh, y=h.Pminmax[,1],  type="l", lwd=3,lty=2,ylim=range(0:5),
+     xlab=expression(italic(h)), ylab=expression("Predator Density"~(italic(P))),frame=T,col="black")
+points(x=hh, y=h.Pminmax[,2],type="l", lwd=3)
+abline(v=h2, col="red",lwd=2,lty=1) #r=K
+#abline(v=h1, col="red",lwd=2,lty=2) #r=-K
+abline(v=1.75, col="red",lwd=2,lty=2)
+text(2.25,5,paste("AI"),cex=2)
+text(0.75,5,paste("AII"),cex=2)
+#text(2.3,5,paste("AIV"),cex=2)
+#tRAIT
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+plot(x=hh, y=h.zminmax[,1],  type="l", lwd=3,lty=2,ylim=range(0:5),
+     xlab=expression(italic(h)), ylab=expression("Trait Value"~(italic(z))),frame=T,col="black")
+points(x=hh, y=h.zminmax[,2],type="l", lwd=3)
+abline(v=h2, col="red",lwd=2,lty=1) #r=K
+#abline(v=h1, col="red",lwd=2,lty=2) #r=-K
+abline(v=1.75, col="red",lwd=2,lty=2)
+text(2.25,5,paste("AI"),cex=2)
+text(0.75,5,paste("AII"),cex=2)
+#text(2.3,5,paste("AIV"),cex=2)
+
+#r/K continuum
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+parameters=c(r0=0.633,rz=0.8,l0=0.5,lz=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001) #r=K
+prm=as.list(parameters) #creating a list of parameters for later
+hh=seq(0,2.5,0.01)
+drNl.r=prm$rz*prm$r0*((prm$r0*(prm$e-prm$d*hh)+prm$lz*prm$d)/((prm$r0^2)*(prm$e-prm$d*hh)+prm$rz*prm$d*prm$l0))
+rsel.eq=prm$rz-drNl.r
+Ksel.eq=drNl.r-prm$lz*prm$r0/prm$l0
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=hh,y=rsel.eq,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab=expression(italic(h)),ylab="r/K Selective gradients",frame=T,
+        ylim = range(-1:1))
+lines(x=hh,y=Ksel.eq,lty=2,lwd=2)
+abline(v=h2, col="red",lwd=2,lty=1) #r=K
+#abline(v=h1, col="red",lwd=2,lty=2) #r=-K
+abline(v=1.75, col="red",lwd=2,lty=2)
+text(2.25,1,paste("AI"),cex=2)
+text(0.75,1,paste("AII"),cex=2)
+#text(2.3,1,paste("AIV"),cex=2)
+#legend("topright", legend = c("r","K"), 
+#       lty = c(1), lwd=c(2),cex=0.7,col=c("black","darkgrey"))
+
+
+##############################################################################################
+#Figure 4
+#Bifurcation for d
+dd = seq(from = 0, to=1.5, by=0.01)
+dNminmax = matrix(NA, ncol=2, nrow=length(dd))#prey minimum and maximum
+dPminmax = matrix(NA, ncol=2, nrow=length(dd))#predator minimux ans maximum
+dzminmax = matrix(NA, ncol=2, nrow=length(dd))#trait minum and maximum
+for(i in 1:length(dd)){
+  parmsi = c(r0=0.633,rz=0.8,l0=0.5,lz=0.25,h=1,e=1,d=dd[i],V=0.05,s=0.0001)
+  n = c(N=0.5,P=0.5,z=1)
+  outi = ode(y=n, times = seq(from = 1, to = 20000, by=0.1), func = system1, parms = parmsi)
+  outi.log = outi#log(outi+1)
+  dNminmax[i,] = range(outi.log[(nrow(outi.log)-5000):nrow(outi.log),2])
+  dPminmax[i,] = range(outi.log[(nrow(outi.log)-5000):nrow(outi.log),3])
+  dzminmax[i,] = range(outi.log[(nrow(outi.log)-5000):nrow(outi.log),4])
+}
+#Finding the h values that allows for stabilities
+a=0.633
+b=0.8
+k0=0.5
+k1=0.25
+h=1
+e=1
+alphad=((b*k0/a)-k1)*(b*k0/(a*(b*k0-a*k1)))
+alphad
+d2=e/(alphad+h)
+d1=h/e
+d2
+
+#removing the runaway
+d.Nminmax=data.frame(dNminmax,dd)
+d.Nminmax
+which(d.Nminmax$X1 < "0")
+d.Nminmax$X1[which(d.Nminmax$X1 < "0")]=NA
+d.Nminmax[!!rowSums(is.na(d.Nminmax)),] = NA
+d.Nminmax
+
+#fROM pREDATOR
+d.Pminmax=data.frame(dPminmax,dd)
+d.Pminmax$X1[which(d.Pminmax$X1 <= "0")]=NA
+d.Pminmax[!!rowSums(is.na(d.Pminmax)),] = NA
+
+#FROM TRAIT
+d.zminmax=data.frame(dzminmax,dd)
+d.zminmax$dd[which(d.zminmax$dd>="0.89"&d.zminmax$dd<="0.98")]=NA
+d.zminmax[!!rowSums(is.na(d.zminmax)),] = NA
+#bifurcation of d
+#Prey
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+plot(x=dd, y=d.Nminmax[,1],  type="l", lwd=3,lty=2,ylim=range(0:5),
+     xlab=expression(italic(d)), ylab=expression("Prey Density"~(italic(N))),frame=T,col="black")
+points(x=dd, y=d.Nminmax[,2],type="l", lwd=3)
+abline(v=d2, col="red",lwd=2,lty=1) #r=K
+#abline(v=d1, col="red",lwd=2,lty=2) #r=-K
+abline(v=0.2, col="red",lwd=2,lty=2)
+abline(v=0.88, col="red",lwd=2,lty=2)
+text(1.25,5,paste("AI"),cex=2)
+text(0.4,5,paste("AII"),cex=2)
+text(0.1,5,paste("AIII"),cex=2)
+#text(1.2,5,paste("AIV"),cex=2)
+#Predator
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+plot(x=dd, y=d.Pminmax[,1],  type="l", lwd=3,lty=2,ylim=range(0:5),
+     xlab=expression(italic(d)), ylab=expression("Predator Density"~(italic(P))),frame=T,col="black")
+points(x=dd, y=d.Pminmax[,2],type="l", lwd=3)
+abline(v=d2, col="red",lwd=2,lty=1) #r=K
+#abline(v=d1, col="red",lwd=2,lty=2) #r=-K
+abline(v=0.2, col="red",lwd=2,lty=2)
+abline(v=0.88, col="red",lwd=2,lty=2)
+text(1.25,5,paste("AI"),cex=2)
+text(0.4,5,paste("AII"),cex=2)
+text(0.1,5,paste("AIII"),cex=2)
+#text(1.2,5,paste("AIV"),cex=2)
+
+#tRAIT
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+plot(x=dd, y=d.zminmax[,1],  type="l", lwd=3,lty=2,ylim=range(0:5),
+     xlab=expression(italic(d)), ylab=expression("Trait Value"~(italic(z))),frame=T,col="black")
+points(x=dd, y=d.zminmax[,2],type="l", lwd=3)
+abline(v=d2, col="red",lwd=2,lty=1) #r=K
+#abline(v=d1, col="red",lwd=2,lty=2) #r=-K
+abline(v=0.2, col="red",lwd=2,lty=2)
+abline(v=0.88, col="red",lwd=2,lty=2)
+text(1.25,5,paste("AI"),cex=2)
+text(0.4,5,paste("AII"),cex=2)
+text(0.1,5,paste("AIII"),cex=2)
+#text(1.2,5,paste("AIV"),cex=2)
+
+#r/K continuum
+parameters=c(r0=0.633,rz=0.8,l0=0.5,lz=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001) #r=K
+prm=as.list(parameters) #creating a list of parameters for later
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+dd=seq(0,1.5,0.01)
+drNl.r=prm$rz*prm$r0*((prm$r0*(prm$e-dd*prm$h)+prm$lz*dd)/((prm$r0^2)*(prm$e-dd*prm$h)+prm$rz*dd*prm$l0))
+rsel.eq=prm$rz-drNl.r
+Ksel.eq=drNl.r-prm$lz*prm$r0/prm$l0
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=dd,y=rsel.eq,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab=expression(italic(d)),ylab="r/K Selective gradients",frame=T,
+        ylim = range(-1:1))
+lines(x=dd,y=Ksel.eq,lty=2,lwd=2)
+abline(v=d2, col="red",lwd=2,lty=1) #r=K
+#abline(v=d1, col="red",lwd=2,lty=2) #r=-K
+abline(v=0.2, col="red",lwd=2,lty=2)
+abline(v=0.88, col="red",lwd=2,lty=2)
+text(1.25,1,paste("AI"),cex=2)
+text(0.4,1,paste("AII"),cex=2)
+text(0.1,1,paste("AIII"),cex=2)
+#text(1.2,5,paste("AIV"),cex=2)
+#text(1.2,5,paste("AIV"),cex=2)
+#legend("topright", legend = c("r","K"), 
+#       lty = c(1), lwd=c(2),cex=0.7,col=c("black","darkgrey"))
+
+
+############################################################################################
+#Figures from the Supplementary Information
+#Time Series
+#RUNAWAY EVOLUTION for a
+parameters=c(a=0.25,b=0.8,k0=0.5,k1=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001)
+#rK
+a=0.25
+b=0.8
+k0=0.5
+k1=0.25
+h=1
+e=1
+d=0.5
+V=0.05
+s=0.0001
+#Initial Conditions
+n0 = c(N=0.5,P=0.5,z=1)
+#Time Steps
+Time=seq(from=1,to=1000,by=0.01)
+#Solving the system
+system1.out=ode(y=n0,times=Time,func=system1,parms=parameters)
+#Population Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,c(2:3)],type = "l",lwd=2,lty=c(1,2),col="black",
+        xlab="Time",ylab="Population Density",frame=T,xlim=range(300:1000))
+dev.off()
+#Trait Dynamics
+jpeg(filename="C://Users//ThinkPad//Documents//Projetos//rK_selection//z_run.jpeg")
+#jpeg(filename="C://Users//Logan//Documents//rK_selection//rK//figures//z_run.jpeg")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,4],type = "l",lwd=2,lty=1,
+        xlab="Time",ylab="Trait Value",frame=T,xlim=range(300:1000))
+#dev.off()
+
+
+#The r/K Selection Gradients (temporal dynamics)
+r=a+b*system1.out[,4]
+dr=b
+l=k0+k1*system1.out[,4]
+dl=k1
+r.sel=dr*(1-system1.out[,2]*l/r)
+K.sel=system1.out[,2]*(dr*l/(r)-dl)
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=r.sel,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab="Time",ylab="r/K Selective Milieu",frame=T,ylim=c(-1,1),xlim=range(300:1000))
+lines(x=system1.out[,1],y=K.sel,lty=2,lwd=2)
+#legend("topright", legend = c("r","K"), 
+#       lty = c(1,2), lwd=c(2),cex=0.7)
+#dev.off()
+
+
+#RUNAWAY EVOLUTION for e when predators no longer persist
+parameters=c(a=0.633,b=0.8,k0=0.5,k1=0.25,h=1,e=0.5,d=0.5,V=0.05,s=0.0001)
+a=0.633
+b=0.8
+k0=0.5
+k1=0.25
+h=1
+e=0.5
+d=0.5
+V=0.05
+s=0.0001
+#Initial Conditions
+n0 = c(N=0.5,P=0.5,z=1)
+#Time Steps
+Time=seq(from=1,to=20000,by=0.01)
+#Solving the system
+system1.out=ode(y=n0,times=Time,func=system1,parms=parameters)
+#Population Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,c(2:3)],type = "l",lwd=2,lty=c(1,2),col="black",
+        xlab="Time",ylab="Population Density",frame=T,xlim=range(0:2000))
+#dev.off()
+#Trait Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,4],type = "l",lwd=2,lty=1,
+        xlab="Time",ylab="Trait Value",frame=T,xlim=range(0:2000))
+#ev.off()
+#The r/K Selection Gradients (temporal dynamics)
+r=a+b*system1.out[,4]
+dr=b
+l=k0+k1*system1.out[,4]
+dl=k1
+r.sel=dr*(1-system1.out[,2]*l/r)
+K.sel=system1.out[,2]*(dr*l/(r)-dl)
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=r.sel,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab="Time",ylab="r/K Selective Milieu",frame=T,ylim=c(-1,1),xlim=range(0:20000))
+lines(x=system1.out[,1],y=K.sel,lty=2,lwd=2)
+#legend("topright", legend = c("r","K"), 
+#       lty = c(1,2), lwd=c(2),cex=0.7)
+#dev.off()
+################################################################################
+
+#Stable r=K
+parameters=c(a=0.633,b=0.8,k0=0.5,k1=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001)
+a=0.633
+b=0.8
+k0=0.5
+k1=0.25
+h=1
+e=1
+d=0.5
+V=0.05
+s=0.0001
+#Initial Conditions
+n0 = c(N=0.5,P=0.5,z=1)
+#Time Steps
+Time=seq(from=1,to=700,by=0.01)
+#Solving the system
+system1.out=ode(y=n0,times=Time,func=system1,parms=parameters)
+#Population Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,c(2:3)],type = "l",lwd=2,lty=c(1,2),col="black",
+        xlab="Time",ylab="Population Density",frame=T)
+#dev.off()
+#Trait Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,4],type = "l",lwd=2,lty=1,
+        xlab="Time",ylab="Trait Value",frame=T)
+#dev.off()
+#The r/K Selection Gradients (temporal dynamics)
+r=a+b*system1.out[,4]
+dr=b
+l=k0+k1*system1.out[,4]
+dl=k1
+r.sel=dr*(1-system1.out[,2]*l/r)
+K.sel=system1.out[,2]*(dr*l/(r)-dl)
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=r.sel,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab="Time",ylab="r/K Selective Milieu",frame=T,ylim=c(-1,1),xlim=range(0:700))
+lines(x=system1.out[,1],y=K.sel,lty=2,lwd=2)
+#legend("topright", legend = c("r","K"), 
+#       lty = c(1,2), lwd=c(2),cex=0.7)
+#dev.off()
+
+
+
+#Stable r
+parameters=c(a=0.34,b=0.8,k0=0.5,k1=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001)
+a=0.34
+b=0.8
+k0=0.5
+k1=0.25
+h=1
+e=1
+d=0.5
+V=0.05
+s=0.0001
+#Initial Conditions
+n0 = c(N=0.5,P=0.5,z=1)
+#Time Steps
+Time=seq(from=1,to=1000,by=0.01)
+#Solving the system
+system1.out=ode(y=n0,times=Time,func=system1,parms=parameters)
+#Population Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,c(2:3)],type = "l",lwd=2,lty=c(1,2),col="black",
+        xlab="Time",ylab="Population Density",frame=T)
+#dev.off()
+#Trait Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,4],type = "l",lwd=2,lty=1,
+        xlab="Time",ylab="Trait Value",frame=T)
+#dev.off()
+#The r/K Selection Gradients (temporal dynamics)
+r=a+b*system1.out[,4]
+dr=b
+l=k0+k1*system1.out[,4]
+dl=k1
+r.sel=dr*(1-system1.out[,2]*l/r)
+K.sel=system1.out[,2]*(dr*l/(r)-dl)
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=r.sel,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab="Time",ylab="r/K Selective Milieu",frame=T,ylim=c(-1,1),xlim=range(0:1000))
+lines(x=system1.out[,1],y=K.sel,lty=2,lwd=2)
+#legend("topright", legend = c("r","K"), 
+#       lty = c(1,2), lwd=c(2),cex=0.7)
+#dev.off()
+
+
+
+
+#Stable K
+parameters=c(a=0.94,b=0.8,k0=0.5,k1=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001)
+a=0.94
+b=0.8
+k0=0.5
+k1=0.25
+h=1
+e=1
+d=0.5
+V=0.05
+s=0.0001
+#Initial Conditions
+n0 = c(N=0.5,P=0.5,z=1)
+#Time Steps
+Time=seq(from=1,to=700,by=0.01)
+#Solving the system
+system1.out=ode(y=n0,times=Time,func=system1,parms=parameters)
+#Population Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,c(2:3)],type = "l",lwd=2,lty=c(1,2),col="black",
+        xlab="Time",ylab="Population Density",frame=T)
+#dev.off()
+#Trait Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,4],type = "l",lwd=2,lty=1,
+        xlab="Time",ylab="Trait Value",frame=T)
+#dev.off()
+#The r/K Selection Gradients (temporal dynamics)
+r=a+b*system1.out[,4]
+dr=b
+l=k0+k1*system1.out[,4]
+dl=k1
+r.sel=dr*(1-system1.out[,2]*l/r)
+K.sel=system1.out[,2]*(dr*l/(r)-dl)
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=r.sel,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab="Time",ylab="r/K Selective Milieu",frame=T,ylim=c(-1,1),xlim=range(0:700))
+lines(x=system1.out[,1],y=K.sel,lty=2,lwd=2)
+#legend("topright", legend = c("r","K"), 
+#       lty = c(1,2), lwd=c(2),cex=0.7)
+#dev.off()
+
+
+#################################################################################
+
+#Cycles for a
+parameters=c(a=1.42,b=0.8,k0=0.5,k1=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001)
+a=1.42
+b=0.8
+k0=0.5
+k1=0.25
+h=1
+e=1
+d=0.5
+V=0.05
+s=0.0001
+#Initial Conditions
+n0 = c(N=0.5,P=0.5,z=1)
+#Time Steps
+Time=seq(from=1,to=7000,by=0.01)
+#Solving the system
+system1.out=ode(y=n0,times=Time,func=system1,parms=parameters)
+#Population Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,c(2:3)],type = "l",lwd=2,lty=c(1,2),col="black",
+        xlab="Time",ylab="Population Density",frame=T,xlim=range(6000:7000))
+#dev.off()
+#Trait Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,4],type = "l",lwd=2,lty=1,
+        xlab="Time",ylab="Trait Value",frame=T,xlim=range(6000:7000))
+#dev.off()
+#The r/K Selection Gradients (temporal dynamics)
+r=a+b*system1.out[,4]
+dr=b
+l=k0+k1*system1.out[,4]
+dl=k1
+r.sel=dr*(1-system1.out[,2]*l/r)
+K.sel=system1.out[,2]*(dr*l/(r)-dl)
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=r.sel,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab="Time",ylab="r/K Selective Milieu",frame=T,ylim=c(0,0.5),xlim=range(6000:7000))
+lines(x=system1.out[,1],y=K.sel,lty=2,lwd=2)
+#legend("topright", legend = c("r","K"), 
+#       lty = c(1,2), lwd=c(2),cex=0.7)
+#dev.off()
+
+
+
+
+#Cycles for e
+parameters=c(a=0.633,b=0.8,k0=0.5,k1=0.25,h=1,e=5.5,d=0.5,V=0.05,s=0.0001)
+a=0.633
+b=0.8
+k0=0.5
+k1=0.25
+h=1
+e=5.5
+d=0.5
+V=0.05
+s=0.0001
+#Initial Conditions
+n0 = c(N=0.5,P=0.5,z=1)
+#Time Steps
+Time=seq(from=1,to=7000,by=0.01)
+#Solving the system
+system1.out=ode(y=n0,times=Time,func=system1,parms=parameters)
+#Population Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,c(2:3)],type = "l",lwd=2,lty=c(1,2),col="black",
+        xlab="Time",ylab="Population Density",frame=T,xlim=range(6900:7000),ylim=c(0,2))
+#dev.off()
+#Trait Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,4],type = "l",lwd=2,lty=1,
+        xlab="Time",ylab="Trait Value",frame=T,xlim=range(6900:7000),ylim=c(0,0.2))
+#dev.off()
+#The r/K Selection Gradients (temporal dynamics)
+r=a+b*system1.out[,4]
+dr=b
+l=k0+k1*system1.out[,4]
+dl=k1
+r.sel=dr*(1-system1.out[,2]*l/r)
+K.sel=system1.out[,2]*(dr*l/(r)-dl)
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=r.sel,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab="Time",ylab="r/K Selective Milieu",frame=T,ylim=c(0,0.5),xlim=range(6900:7000))
+lines(x=system1.out[,1],y=K.sel,lty=2,lwd=2)
+#legend("topright", legend = c("r","K"), 
+#       lty = c(1,2), lwd=c(2),cex=0.7)
+#dev.off()
+
+
+
+#Cycles for d
+parameters=c(a=0.633,b=0.8,k0=0.5,k1=0.25,h=1,e=1,d=0.1,V=0.05,s=0.0001)
+a=0.633
+b=0.8
+k0=0.5
+k1=0.25
+h=1
+e=1
+d=0.1
+V=0.05
+s=0.0001
+#Initial Conditions
+n0 = c(N=0.5,P=0.5,z=1)
+#Time Steps
+Time=seq(from=1,to=2000,by=0.01)
+#Solving the system
+system1.out=ode(y=n0,times=Time,func=system1,parms=parameters)
+#Population Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,c(2:3)],type = "l",lwd=2,lty=c(1,2),col="black",
+        xlab="Time",ylab="Population Density",frame=T,xlim=range(1500:2000),ylim=c(0,2.5))
+#dev.off()
+#Trait Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,4],type = "l",lwd=2,lty=1,
+        xlab="Time",ylab="Trait Value",frame=T,xlim=range(1500:2000),ylim=c(0,0.5))
+#dev.off()
+#The r/K Selection Gradients (temporal dynamics)
+r=a+b*system1.out[,4]
+dr=b
+l=k0+k1*system1.out[,4]
+dl=k1
+r.sel=dr*(1-system1.out[,2]*l/r)
+K.sel=system1.out[,2]*(dr*l/(r)-dl)
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=r.sel,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab="Time",ylab="r/K Selective Milieu",frame=T,ylim=c(0,1),xlim=range(1500:2000))
+lines(x=system1.out[,1],y=K.sel,lty=2,lwd=2)
+#legend("topright", legend = c("r","K"), 
+#       lty = c(1,2), lwd=c(2),cex=0.7)
+#dev.off()
+
+
+
+
+
+#Predator extinction
+parameters=c(a=1.6,b=0.8,k0=0.5,k1=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001)
+a=1.6
+b=0.8
+k0=0.5
+k1=0.25
+h=1
+e=1
+d=0.5
+V=0.05
+s=0.0001
+#Initial Conditions
+n0 = c(N=0.5,P=0.5,z=1)
+#Time Steps
+Time=seq(from=1,to=100,by=0.01)
+#Solving the system
+system1.out=ode(y=n0,times=Time,func=system1,parms=parameters)
+#Population Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,c(2:3)],type = "l",lwd=2,lty=c(1,2),col="black",
+        xlab="Time",ylab="Population Density",frame=T)
+#dev.off()
+#Trait Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,4],type = "l",lwd=2,lty=1,
+        xlab="Time",ylab="Trait Value",frame=T)
+#dev.off()
+#The r/K Selection Gradients (temporal dynamics)
+r=a+b*system1.out[,4]
+dr=b
+l=k0+k1*system1.out[,4]
+dl=k1
+r.sel=dr*(1-system1.out[,2]*l/r)
+K.sel=system1.out[,2]*(dr*l/(r)-dl)
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=r.sel,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab="Time",ylab="r/K Selective Milieu",frame=T,ylim=c(-1,1),xlim=range(0:100))
+lines(x=system1.out[,1],y=K.sel,lty=2,lwd=2)
+#legend("topright", legend = c("r","K"), 
+#       lty = c(1,2), lwd=c(2),cex=0.7)
+#dev.off()
+
+
+
+#Predator extinction e>1.6
+parameters=c(a=1.8,b=0.8,k0=0.5,k1=0.25,h=1,e=1,d=0.5,V=0.05,s=0.0001)
+a=1.8
+b=0.8
+k0=0.5
+k1=0.25
+h=1
+e=1
+d=0.5
+V=0.05
+s=0.0001
+#Initial Conditions
+n0 = c(N=0.5,P=0.5,z=1)
+#Time Steps
+Time=seq(from=1,to=100,by=0.01)
+#Solving the system
+system1.out=ode(y=n0,times=Time,func=system1,parms=parameters)
+#Population Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,c(2:3)],type = "l",lwd=2,lty=c(1,2),col="black",
+        xlab="Time",ylab="Population Density",frame=T)
+#dev.off()
+#Trait Dynamics
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=system1.out[,4],type = "l",lwd=2,lty=1,
+        xlab="Time",ylab="Trait Value",frame=T)
+#dev.off()
+#The r/K Selection Gradients (temporal dynamics)
+r=a+b*system1.out[,4]
+dr=b
+l=k0+k1*system1.out[,4]
+dl=k1
+r.sel=dr*(1-system1.out[,2]*l/r)
+K.sel=system1.out[,2]*(dr*l/(r)-dl)
+#jpeg(filename="YOUR FOLDER")
+par(mar = c(4,6,0,0),cex.axis=1.75,cex.lab=2.75)
+matplot(x=system1.out[,1],y=r.sel,type = "l",lwd=2,lty=1,col=c("black","azure4"),
+        xlab="Time",ylab="r/K Selective Milieu",frame=T,ylim=c(-1,1),xlim=range(0:100))
+lines(x=system1.out[,1],y=K.sel,lty=2,lwd=2)
+#legend("topright", legend = c("r","K"), 
+#       lty = c(1,2), lwd=c(2),cex=0.7)
+#dev.off()
+
+
